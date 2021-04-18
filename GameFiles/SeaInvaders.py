@@ -8,12 +8,14 @@ pygame.init()
 window = pygame.display.set_mode((800, 800))
 pygame.display.set_caption('Sea Invaders')
 clock = pygame.time.Clock()  # Adds the clock for spawn timers
+message_font = pygame.font.SysFont('Calibri', 36)
 
 # Sprites, background and music
 background = pygame.image.load('Background.jpg')
 whale_sprite = pygame.image.load('Whale.png')
 speedboat_sprite = pygame.image.load('Speedboat.png')
 beam_sprite = pygame.image.load('Beam.png')
+life_sprite = pygame.image.load('Life.png')
 
 
 # Classes
@@ -32,7 +34,7 @@ class Player():
         # This function draws the whale using the sprite and the defined location in the class parameters
         window.blit(whale_sprite, (self.x, self.y))
         self.hitbox = (self.x, self.y, self.width, self.height)
-        pygame.draw.rect(window, (255, 0, 0), self.hitbox, 2)
+        # pygame.draw.rect(window, (255, 0, 0), self.hitbox, 2) # Hitbox check
 
 
 class Enemy():
@@ -47,25 +49,27 @@ class Enemy():
         self.sprite = sprite
         self.hitbox = (self.x + 22, self.y + 15, 19, 45)  # Dimensions of the hitbox to make it close to the model
         self.alive = True
+        self.end_reached = False
 
     def draw(self, window):
         # This function draws the enemy with the pre-defined sprite and location
-        if self.alive:
+        if self.alive and not self.end_reached:
             window.blit(self.sprite, (self.x, self.y))
             self.hitbox = (self.x + 22, self.y + 15, 19, 45)  # Dimensions of the hitbox to make it close to the model
-            pygame.draw.rect(window, (255, 0, 0), self.hitbox, 2)
+            # pygame.draw.rect(window, (255, 0, 0), self.hitbox, 2) # Hitbox check
 
     def move(self):
         # This function lets the enemy go forward until the end of the screen
         max_distance = 800 - self.height
         if self.y < max_distance:
             self.y += self.mov_speed
+
         if self.y >= max_distance:
             self.alive = False
+            self.end_reached = True
 
     def hit(self):
         self.alive = False
-
 
 
 class Projectile():
@@ -82,10 +86,36 @@ class Projectile():
         window.blit(self.sprite, (self.x, self.y))
 
 
+class Hud():
+    def __init__(self, x, y, sprite):
+        self.x = x
+        self.y = y
+        # self.width = width
+        # self.height = height
+        self.sprite = sprite
+
+    def draw(self, window):
+        window.blit(self.sprite, (self.x, self.y))
+
+
 # Methods
 def redrawGameWindow():
     window.blit(background, (0, 0))  # Loads in the background
     whale.draw(window)  # Draws the Whale in the game
+    scoreboard = message_font.render(str(score), True, (255, 255, 255))
+    window.blit(scoreboard, (700, 760))
+
+    x_life = 0
+
+    for life in range(lives):
+        life = Hud(x_life, 760, life_sprite)
+        x_life += 25
+        life.draw(window)
+
+    if lives == 0:
+        text = f'Game over! Your score: {score}.'
+        game_over = message_font.render(text, True, (0, 0, 0))
+        window.blit(game_over, (200, 200))
 
     for speedboat in speedboats:
         speedboat.draw(window)
@@ -96,12 +126,6 @@ def redrawGameWindow():
     pygame.display.update()  # This updates the above changes to the game window
 
 
-def startMessage():
-    font = pygame.font.SysFont('comicsans', 32)
-    text = font.render('Try to destroy as many boats as possible to save the ocean!', True, (255, 0, 0))
-    window.blit(text, text.get_rect(center=window.get_rect().center))
-
-
 # Game logic here
 game = True
 whale = Player(334, 650, 128, 128)  # Spawns the Player at the start of the game in the middle of the screen
@@ -109,7 +133,9 @@ speedboat_locations = (125, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600, 65
 speedboats = []
 beams = []
 cooldown = 0
-wave_1 = 10
+wave_1 = 5
+lives = 3
+score = 0
 
 while game:
 
@@ -117,19 +143,30 @@ while game:
         if event.type == pygame.QUIT:
             game = False
 
+    # Life check
+    for speedboat in speedboats:
+        if speedboat.end_reached:  # if this is true we subtract a life
+            lives -= 1  # We subtract lives with the enemies that reached the end
+
+        if not speedboat.alive:
+            speedboats.remove(speedboat)
+
     # Basic cooldown for the projectiles of the player
     if cooldown > 0:
         cooldown += 1
     if cooldown > 50:
         cooldown = 0
 
+    # Collision of attacks
     for beam in beams:
         for speedboat in speedboats:
             if speedboat.alive:
                 if beam.y - beam.width < speedboat.hitbox[1] + speedboat.hitbox[3] and beam.y + beam.width > \
                         speedboat.hitbox[1]:
-                    if beam.x + beam.height > speedboat.hitbox[0] and beam.x - beam.height < speedboat.hitbox[0] + speedboat.hitbox[2]:
+                    if beam.x + beam.height > speedboat.hitbox[0] and beam.x - beam.height < speedboat.hitbox[0] + \
+                            speedboat.hitbox[2]:
                         speedboat.hit()
+                        score += 25
                         beams.pop(beams.index(beam))
         if beam.y > 0:
             beam.y -= beam.speed  # This makes sure the bullet moves forward as long as it is not of the screen
@@ -165,7 +202,6 @@ while game:
     for n in range(wave_1):
         speedboats.append(Enemy(random.randint(64, 734), random.randrange(-1000, -100), 64, 64, 1, speedboat_sprite))
         wave_1 -= 1
-    
 
     redrawGameWindow()
 
