@@ -16,6 +16,8 @@ whale_sprite = pygame.image.load('Whale.png')
 speedboat_sprite = pygame.image.load('Speedboat.png')
 beam_sprite = pygame.image.load('Beam.png')
 life_sprite = pygame.image.load('Life.png')
+pirate_boss_sprite_left = pygame.image.load('Pirateboss_left.png')
+pirate_boss_sprite_right = pygame.image.load('Pirateboss_right.png')
 
 
 # Classes
@@ -72,6 +74,34 @@ class Enemy():
         self.alive = False
 
 
+class Boss():
+    def __init__(self, x, y, width, height, mov_speed):
+        # Variables for the boss objects
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+        self.mov_speed = mov_speed
+        self.boss_path = [x, 800]
+
+    def draw(self, window):
+        window.blit(pirate_boss_sprite_right, (self.x, self.y))
+
+    def move(self):
+        if self.mov_speed > 0:  # check is your moving right -> if your mov speed is positive
+            if self.x < self.boss_path[1] + self.mov_speed:
+                self.x += self.mov_speed
+            else:
+                self.mov_speed = self.mov_speed * -1  # Turns you around when the end is reached.
+                self.x += self.mov_speed
+        else:
+            if self.x > self.boss_path[0] - self.mov_speed:
+                self.mov_speed += self.mov_speed
+            else:
+                self.mov_speed = self.mov_speed * -1
+                self.x += self.mov_speed
+
+
 class Projectile():
     def __init__(self, x, y, width, height, speed, sprite):
         # Variables for the player attacks (ranged)
@@ -117,6 +147,10 @@ def redrawGameWindow():
         game_over = message_font.render(text, True, (0, 0, 0))
         window.blit(game_over, (200, 200))
 
+    if score >= 75:
+        pirate_boss.draw(window)
+        pirate_boss.move()
+
     for speedboat in speedboats:
         speedboat.draw(window)
         speedboat.move()
@@ -131,6 +165,7 @@ game = True
 whale = Player(334, 650, 128, 128)  # Spawns the Player at the start of the game in the middle of the screen
 speedboat_locations = (125, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600, 650, 700, 750, 800)
 speedboats = []
+pirate_boss = Boss(1, 1, 256, 256, 1)
 beams = []
 cooldown = 0
 wave_1 = 5
