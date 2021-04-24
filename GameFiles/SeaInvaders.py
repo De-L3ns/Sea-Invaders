@@ -86,14 +86,14 @@ class Boss():
         self.hitbox = (self.x + 30, self.y + 50, 225, 160)  # Dimensions of the hitbox to make it close to the model
         self.alive = True
 
-
-
     def draw(self, window):
         if self.alive:
             window.blit(pirate_boss_sprite_right, (self.x, self.y))
             self.hitbox = (self.x + 30, self.y + 50, 225, 160)
-            pygame.draw.rect(window, (255, 0, 0), (self.x + ((self.width / 2) - (self.hitpoints / 2)), self.y + 220, 50, 10))
-            pygame.draw.rect(window, (0, 255, 0), (self.x + ((self.width / 2) - (self.hitpoints / 2)), self.y + 220, self.hitpoints, 10))
+            pygame.draw.rect(window, (255, 0, 0),
+                             (self.x + ((self.width / 2) - (self.hitpoints / 2)), self.y + 220, 50, 10))
+            pygame.draw.rect(window, (0, 255, 0),
+                             (self.x + ((self.width / 2) - (self.hitpoints / 2)), self.y + 220, self.hitpoints, 10))
 
             # pygame.draw.rect(window, (255, 0, 0), self.hitbox, 2)  # hitbox check
 
@@ -119,7 +119,6 @@ class Projectile():
         self.speed = speed
         self.damage = damage
         self.sprite = sprite
-
 
     def draw(self, window):
         window.blit(self.sprite, (self.x, self.y))
@@ -219,8 +218,6 @@ while game:
                     beams.pop(beams.index(beam))
                     print(pirate_boss.hitpoints)
                     pirate_boss.hit()
-
-
 
         if beam.y > 0:
             beam.y -= beam.speed  # This makes sure the bullet moves forward as long as it is not of the screen
