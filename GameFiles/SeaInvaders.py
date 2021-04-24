@@ -16,8 +16,8 @@ whale_sprite = pygame.image.load('Whale.png')
 speedboat_sprite = pygame.image.load('Speedboat.png')
 beam_sprite = pygame.image.load('Beam.png')
 life_sprite = pygame.image.load('Life.png')
-pirate_boss_sprite_left = pygame.image.load('Pirateboss_left.png')
 pirate_boss_sprite_right = pygame.image.load('Pirateboss_right.png')
+cannonball_sprite = pygame.image.load('Cannonball.png')
 
 
 # Classes
@@ -101,12 +101,30 @@ class Boss():
         if self.x < (800 + self.width):
             self.x += self.mov_speed
         else:
-            self.x = -50
+            self.x = -51
 
     def hit(self):
         print('hit')
         if self.hitpoints <= 0:
             self.alive = False
+
+    def attack(self, window):
+        cannonball = Projectile(round(self.x + (self.width // 2) - (64 // 2)), round(self.y + (self.height - 64)), 64, 64, 2,
+                   10, cannonball_sprite)
+
+        locations = [151, 351, 551]
+        cannonball.draw(window)
+        if cannonball.y < 800:
+            cannonball.y += cannonball.speed
+
+
+
+
+
+        cannonball.draw(window)
+
+
+
 
 
 class Projectile():
@@ -156,6 +174,7 @@ def redrawGameWindow():
     if score >= 75:
         pirate_boss.draw(window)
         pirate_boss.move()
+        pirate_boss.attack(window)
 
     for speedboat in speedboats:
         speedboat.draw(window)
