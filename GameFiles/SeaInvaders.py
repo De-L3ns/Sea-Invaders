@@ -75,42 +75,51 @@ class Enemy():
 
 
 class Boss():
-    def __init__(self, x, y, width, height, mov_speed):
+    def __init__(self, x, y, width, height, mov_speed, hitpoints):
         # Variables for the boss objects
         self.x = x
         self.y = y
         self.width = width
         self.height = height
         self.mov_speed = mov_speed
-        self.boss_path = [x, 800]
+        self.hitpoints = hitpoints
+        self.hitbox = (self.x + 30, self.y + 50, 225, 160)  # Dimensions of the hitbox to make it close to the model
+        self.alive = True
+
+
 
     def draw(self, window):
-        window.blit(pirate_boss_sprite_right, (self.x, self.y))
+        if self.alive:
+            window.blit(pirate_boss_sprite_right, (self.x, self.y))
+            self.hitbox = (self.x + 30, self.y + 50, 225, 160)
+            pygame.draw.rect(window, (255, 0, 0), (self.x + ((self.width / 2) - (self.hitpoints / 2)), self.y + 220, 50, 10))
+            pygame.draw.rect(window, (0, 255, 0), (self.x + ((self.width / 2) - (self.hitpoints / 2)), self.y + 220, self.hitpoints, 10))
+
+            # pygame.draw.rect(window, (255, 0, 0), self.hitbox, 2)  # hitbox check
 
     def move(self):
-        if self.mov_speed > 0:  # check is your moving right -> if your mov speed is positive
-            if self.x < self.boss_path[1] + self.mov_speed:
-                self.x += self.mov_speed
-            else:
-                self.mov_speed = self.mov_speed * -1  # Turns you around when the end is reached.
-                self.x += self.mov_speed
+        if self.x < (800 + self.width):
+            self.x += self.mov_speed
         else:
-            if self.x > self.boss_path[0] - self.mov_speed:
-                self.mov_speed += self.mov_speed
-            else:
-                self.mov_speed = self.mov_speed * -1
-                self.x += self.mov_speed
+            self.x = -50
+
+    def hit(self):
+        print('hit')
+        if self.hitpoints <= 0:
+            self.alive = False
 
 
 class Projectile():
-    def __init__(self, x, y, width, height, speed, sprite):
+    def __init__(self, x, y, width, height, speed, damage, sprite):
         # Variables for the player attacks (ranged)
         self.x = x
         self.y = y
         self.width = width
         self.height = height
         self.speed = speed
+        self.damage = damage
         self.sprite = sprite
+
 
     def draw(self, window):
         window.blit(self.sprite, (self.x, self.y))
@@ -120,8 +129,6 @@ class Hud():
     def __init__(self, x, y, sprite):
         self.x = x
         self.y = y
-        # self.width = width
-        # self.height = height
         self.sprite = sprite
 
     def draw(self, window):
@@ -165,7 +172,7 @@ game = True
 whale = Player(334, 650, 128, 128)  # Spawns the Player at the start of the game in the middle of the screen
 speedboat_locations = (125, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600, 650, 700, 750, 800)
 speedboats = []
-pirate_boss = Boss(1, 1, 256, 256, 1)
+pirate_boss = Boss(1, 1, 256, 256, 1, 50)
 beams = []
 cooldown = 0
 wave_1 = 5
@@ -203,6 +210,18 @@ while game:
                         speedboat.hit()
                         score += 25
                         beams.pop(beams.index(beam))
+        if pirate_boss.alive:
+            if beam.y - beam.width < pirate_boss.hitbox[1] + pirate_boss.hitbox[3] and beam.y + beam.width > \
+                    pirate_boss.hitbox[1]:
+                if beam.x + beam.height > pirate_boss.hitbox[0] and beam.x - beam.height < pirate_boss.hitbox[0] + \
+                        pirate_boss.hitbox[2]:
+                    pirate_boss.hitpoints -= beam.damage
+                    beams.pop(beams.index(beam))
+                    print(pirate_boss.hitpoints)
+                    pirate_boss.hit()
+
+
+
         if beam.y > 0:
             beam.y -= beam.speed  # This makes sure the bullet moves forward as long as it is not of the screen
         else:
@@ -226,7 +245,7 @@ while game:
         if len(beams) < 3:
             beams.append(
                 Projectile(round(whale.x + (whale.width // 2) - (32 // 2)), round(whale.y - (32 // 2)), 32, 32, 2,
-                           beam_sprite))
+                           10, beam_sprite))
             # The beam gets spawned at the whale X/Y Coordinate. To make the beam appear in the middle and at the
             # nose we add half the sprites width - half the width of the projectile to the for the x coordinate
             # and we use the y coordinate - half the length of the projectile to make the attack spawn at the top
