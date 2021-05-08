@@ -37,8 +37,7 @@ class Player():
         self.hitbox = (self.x, self.y, self.width, self.height)
         # pygame.draw.rect(window, (255, 0, 0), self.hitbox, 2) # Hitbox check
 
-
-class Enemy():
+class Enemy(pygame.sprite.Sprite):
 
     def __init__(self, x, y, width, height, mov_speed, sprite):
         # Variables for the various enemies
@@ -165,9 +164,9 @@ def redrawGameWindow():
         pirate_boss.draw(window)
         pirate_boss.move()
 
-    for speedboat in speedboats:
-        speedboat.draw(window)
-        speedboat.move()
+
+    speedboats.draw(window)
+    speedboats.move()
 
     for fired_beam in beams:
         fired_beam.draw(window)
@@ -178,7 +177,7 @@ def redrawGameWindow():
 game = True
 whale = Player(334, 650, 128, 128)  # Spawns the Player at the start of the game in the middle of the screen
 speedboat_locations = (125, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600, 650, 700, 750, 800)
-speedboats = []
+speedboats = pygame.sprite.Group()
 pirate_boss = Boss(1, 1, 256, 256, 1, 50)
 beams = []
 cooldown = 0
@@ -261,7 +260,7 @@ while game:
     # --- ENEMY SPAWNING ---
     # This block of code spawns the first wave of enemies
     for n in range(wave_1):
-        speedboats.append(Enemy(random.randint(64, 734), random.randrange(-1000, -100), 64, 64, 1, speedboat_sprite))
+        speedboats.add(Enemy(random.randint(64, 734), random.randrange(-1000, -100), 64, 64, 1, speedboat_sprite))
         wave_1 -= 1
 
     redrawGameWindow()
