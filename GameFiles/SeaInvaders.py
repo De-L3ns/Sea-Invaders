@@ -17,7 +17,6 @@ speedboat_sprite = pygame.image.load('Speedboat.png')
 beam_sprite = pygame.image.load('Beam.png')
 life_sprite = pygame.image.load('Life.png')
 pirate_boss_sprite_right = pygame.image.load('Pirateboss_right.png')
-cannonball_sprite = pygame.image.load('Cannonball.png')
 
 
 # Classes
@@ -85,6 +84,7 @@ class Boss():
         self.hitpoints = hitpoints
         self.hitbox = (self.x + 30, self.y + 50, 225, 160)  # Dimensions of the hitbox to make it close to the model
         self.alive = True
+        self.end_reached = False
 
     def draw(self, window):
         if self.alive:
@@ -98,33 +98,23 @@ class Boss():
             # pygame.draw.rect(window, (255, 0, 0), self.hitbox, 2)  # hitbox check
 
     def move(self):
+        max_distance = 800 - self.height
         if self.x < (800 + self.width):
             self.x += self.mov_speed
+
         else:
+            self.y += 100
             self.x = -51
+
+        if self.y >= max_distance:
+            self.alive = False
+            self.end_reached = True
+
 
     def hit(self):
         print('hit')
         if self.hitpoints <= 0:
             self.alive = False
-
-    def attack(self, window):
-        cannonball = Projectile(round(self.x + (self.width // 2) - (64 // 2)), round(self.y + (self.height - 64)), 64, 64, 2,
-                   10, cannonball_sprite)
-
-        locations = [151, 351, 551]
-        cannonball.draw(window)
-        if cannonball.y < 800:
-            cannonball.y += cannonball.speed
-
-
-
-
-
-        cannonball.draw(window)
-
-
-
 
 
 class Projectile():
@@ -174,7 +164,6 @@ def redrawGameWindow():
     if score >= 75:
         pirate_boss.draw(window)
         pirate_boss.move()
-        pirate_boss.attack(window)
 
     for speedboat in speedboats:
         speedboat.draw(window)
@@ -211,6 +200,9 @@ while game:
         if not speedboat.alive:
             speedboats.remove(speedboat)
 
+    if pirate_boss.end_reached:
+        lives = 0
+
     # Basic cooldown for the projectiles of the player
     if cooldown > 0:
         cooldown += 1
@@ -235,7 +227,6 @@ while game:
                         pirate_boss.hitbox[2]:
                     pirate_boss.hitpoints -= beam.damage
                     beams.pop(beams.index(beam))
-                    print(pirate_boss.hitpoints)
                     pirate_boss.hit()
 
         if beam.y > 0:
