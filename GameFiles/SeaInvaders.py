@@ -65,41 +65,44 @@ class Enemy(pygame.sprite.Sprite):
         self.alive = False
 
 
-class Boss():
+class Boss(pygame.sprite.Sprite):
     def __init__(self, x, y, width, height, mov_speed, hitpoints):
         # Variables for the boss objects
-        self.x = x
-        self.y = y
+        pygame.sprite.Sprite.__init__(self)
+        self.image = pirate_boss_sprite_right
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
         self.width = width
         self.height = height
         self.mov_speed = mov_speed
         self.hitpoints = hitpoints
-        self.hitbox = (self.x + 30, self.y + 50, 225, 160)  # Dimensions of the hitbox to make it close to the model
+        self.hitbox = (self.rect.x + 30, self.rect.y + 50, 225, 160)  # Dimensions of the hitbox to make it close to the model
         self.alive = False
         self.killed = False
         self.end_reached = False
 
-    def draw(self, window):
-        if self.alive and not self.killed:
-            window.blit(pirate_boss_sprite_right, (self.x, self.y))
-            self.hitbox = (self.x + 30, self.y + 50, 225, 160)
-            pygame.draw.rect(window, (255, 0, 0),
-                             (self.x + ((self.width / 2) - (self.hitpoints / 2)), self.y + 220, 50, 10))
-            pygame.draw.rect(window, (0, 255, 0),
-                             (self.x + ((self.width / 2) - (self.hitpoints / 2)), self.y + 220, self.hitpoints, 10))
+    # def draw(self, window):
+        # if self.alive and not self.killed:
+            # window.blit(pirate_boss_sprite_right, (self.x, self.y))
+            # self.hitbox = (self.x + 30, self.y + 50, 225, 160)
+            # pygame.draw.rect(window, (255, 0, 0),
+                             # (self.x + ((self.width / 2) - (self.hitpoints / 2)), self.y + 220, 50, 10))
+            # pygame.draw.rect(window, (0, 255, 0),
+                             # (self.x + ((self.width / 2) - (self.hitpoints / 2)), self.y + 220, self.hitpoints, 10))
 
             # pygame.draw.rect(window, (255, 0, 0), self.hitbox, 2)  # hitbox check
 
-    def move(self):
+    def update(self):
         max_distance = 800 - self.height
-        if self.x < (800 + self.width):
-            self.x += self.mov_speed
+        if self.rect.x < (800 + self.width):
+            self.rect.x += self.mov_speed
 
         else:
-            self.y += 100
-            self.x = -51
+            self.rect.y += 100
+            self.rect.x = -51
 
-        if self.y >= max_distance:
+        if self.rect.y >= max_distance:
             self.alive = False
             self.end_reached = True
 
@@ -164,10 +167,8 @@ def redrawGameWindow():
         game_over = message_font.render(text, True, (0, 0, 0))
         window.blit(game_over, (200, 200))
 
-    if score >= 75:
-        pirate_boss.alive = True
-        pirate_boss.draw(window)
-        pirate_boss.move()
+    pirate_boss.draw(window)
+    pirate_boss.update()
 
     speedboats.draw(window)
     speedboats.update()
@@ -183,13 +184,11 @@ whale = Player(334, 650, 128, 128)  # Spawns the Player at the start of the game
 speedboat_locations = (125, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600, 650, 700, 750, 800)
 speedboats = pygame.sprite.Group()
 speedboats_hit = 0
-pirate_boss = Boss(1, 1, 256, 256, 1, 50)
+pirate_boss = pygame.sprite.Group()
 beams = []
 cooldown = 0
-wave_1 = 5
 lives = 3
 score = 0
-wave_2 = 10
 start = pygame.time.get_ticks()
 
 while game:
@@ -206,9 +205,9 @@ while game:
 
         if not speedboat.alive:
             speedboats.remove(speedboat)
-
-    if pirate_boss.end_reached:
-        lives = 0
+    for boss in pirate_boss:
+        if boss.rect.y >= (800 - 256):
+            lives = 0
 
     # Basic cooldown for the projectiles of the player
     if cooldown > 0:
@@ -220,17 +219,12 @@ while game:
     for beam in beams:
         if beam.checkCollision(speedboats):
             score += 25
-            speedboats_hit += 1
             beams.pop(beams.index(beam))
-        if pirate_boss.alive:
-            if beam.y - beam.width < pirate_boss.hitbox[1] + pirate_boss.hitbox[3] and beam.y + beam.width > \
-                    pirate_boss.hitbox[1]:
-                if beam.x + beam.height > pirate_boss.hitbox[0] and beam.x - beam.height < pirate_boss.hitbox[0] + \
-                        pirate_boss.hitbox[2]:
-                    pirate_boss.hitpoints -= beam.damage
-                    beams.pop(beams.index(beam))
-                    pirate_boss.hit()
-                    print(pirate_boss.hitpoints)
+        if beam.checkCollision(pirate_boss):
+            pirate_boss.hitpoints -= beam.damage
+            beams.pop(beams.index(beam))
+            pirate_boss.hit()
+            print(pirate_boss.hitpoints)
 
         if beam.y > 0:
             beam.y -= beam.speed  # This makes sure the bullet moves forward as long as it is not of the screen
@@ -266,6 +260,9 @@ while game:
 
     now = pygame.time.get_ticks()
     spawn_time = 3000
+    if score >= 75:
+        boss = Boss(1, 1, 256, 256, 1, 50)
+        boss.add(pirate_boss)
     if score > 500:
         spawn_time = 2000
     if score > 1000:
@@ -275,12 +272,6 @@ while game:
         start = now
         speedboat = Enemy(64, 64, 1)
         speedboats.add(speedboat)
-
-
-
-
-
-
 
     redrawGameWindow()
 
