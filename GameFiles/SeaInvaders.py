@@ -1,4 +1,6 @@
 import pygame
+import pygame_gui
+import pygame_gui.data
 import random
 
 # Initialize game window here
@@ -6,17 +8,29 @@ pygame.init()
 
 # Variables for the game window
 window = pygame.display.set_mode((800, 800))
+manager = pygame_gui.UIManager((800, 800))
 pygame.display.set_caption('Sea Invaders')
 clock = pygame.time.Clock()  # Adds the clock for spawn timers
-message_font = pygame.font.SysFont('Calibri', 36)
+score_font = pygame.font.SysFont('Calibri', 36)
+multiplier_font = pygame.font.SysFont('Calibri', 18)
 
-# Sprites, background and music
+# Sprites, background, UI and music
 background = pygame.image.load('Background.jpg')
 whale_sprite = pygame.image.load('Whale.png')
 speedboat_sprite = pygame.image.load('Speedboat.png')
 beam_sprite = pygame.image.load('Beam.png')
 life_sprite = pygame.image.load('Life.png')
 pirate_boss_sprite_right = pygame.image.load('Pirateboss_right.png')
+game_title = pygame_gui.elements.UILabel(relative_rect=pygame.Rect((200, 100), (400, 100)), text='SEA INVADERS',
+                                         manager=manager)
+
+start_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((350, 350), (100, 50)), text='Start',
+                                            manager=manager)
+quit_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((350, 400), (100, 50)), text='Quit',
+                                           manager=manager)
+controls = pygame_gui.elements.UILabel(relative_rect=pygame.Rect((150, 500), (500, 75)),
+                                       text='3 lives - Arrow keys to move, space bar to kill',
+                                       manager=manager)
 
 
 # Classes
@@ -150,28 +164,43 @@ class Hud():
 
 
 # Methods
+def redrawUI():
+    pygame_gui.elements.UILabel(relative_rect=pygame.Rect((100, 250), (600, 75)),
+                                text='Protect the ocean as long as possible by destroying ships',
+                                manager=manager)
+    window.blit(background, (0, 0))  # Loads in the background
+    whale.draw(window)  # Draws the Whale in the game
+    window.blit(speedboat_sprite, (100, 100))
+    window.blit(speedboat_sprite, (620, 100))
+
+    if not first_game:
+        pygame_gui.elements.UILabel(relative_rect=pygame.Rect((100, 250), (600, 75)),
+                                    text=f'Game over! Your score: {last_score}. Your best score '
+                                         f'this session: {best_score}.',
+                                    manager=manager)
+    manager.draw_ui(window)
+    pygame.display.update()
+
+
 def redrawGameWindow():
     window.blit(background, (0, 0))  # Loads in the background
     whale.draw(window)  # Draws the Whale in the game
-    scoreboard = message_font.render(str(score), True, (255, 255, 255))
+    scoreboard = score_font.render(str(score), True, (255, 255, 255))
+    multiplier_message = multiplier_font.render(f'multiplier: {multiplier}', True, (255, 255, 255))
     window.blit(scoreboard, (700, 760))
+    window.blit(multiplier_message, (85, 766))
 
     x_life = 0
-    # This for loop places the lives next to eachother on the HUD
+    # This for loop places the lives next to each other on the HUD
     for life in range(lives):
         life = Hud(x_life, 760, life_sprite)
         x_life += 25
         life.draw(window)
 
-    if lives == 0:
-        text = f'Game over! Your score: {score}.'
-        game_over = message_font.render(text, True, (0, 0, 0))
-        window.blit(game_over, (200, 200))
-
-    if score >= 75:
-        pirate_boss.alive = True
-        pirate_boss.draw(window)
-        pirate_boss.move()
+    for b in bosses:
+        b.alive = True
+        b.draw(window)
+        b.move()
 
     speedboats.draw(window)
     speedboats.update()
@@ -183,115 +212,168 @@ def redrawGameWindow():
 
 
 # Game logic here
-game = True
+running = True
+main_menu = True
+game = False
+FPS = 100
 whale = Player(334, 650, 128, 128)  # Spawns the Player at the start of the game in the middle of the screen
 speedboat_locations = (125, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600, 650, 700, 750, 800)
 speedboats = pygame.sprite.Group()
-pirate_boss = Boss(1, 1, 256, 256, 1, 50)
+bosses = []
 beams = []
 cooldown = 0
 lives = 3
 score = 0
+last_score = 0
+best_score = 0
+first_game = True
+speedboat_hits = 0
 multiplier = 1
 start = pygame.time.get_ticks()
 
-while game:
+while running:
+    if game:
+        for event in pygame.event.get():  # this for-loop makes sure the game exits when clicking x
+            if event.type == pygame.QUIT:
+                running = False
 
-    for event in pygame.event.get():  # this for-loop makes sure the game exits when clicking x
-        if event.type == pygame.QUIT:
+        # Life check
+        for speedboat in speedboats:
+            if speedboat.rect.y >= 734:
+                speedboat.kill()
+                lives -= 1
+
+            if not speedboat.alive:
+                speedboats.remove(speedboat)
+        for pirate_boss in bosses:
+            if pirate_boss.end_reached and not pirate_boss.killed:
+                lives = 0
+
+        if lives == 0:
+            first_game = False
+            last_score = score
+            if last_score >= best_score:
+                best_score = last_score
+            whale = Player(334, 650, 128, 128)  # Spawns the Player at the start of the game in the middle of the screen
+            speedboat_locations = (125, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600, 650, 700, 750, 800)
+            speedboats = pygame.sprite.Group()
+            bosses = []
+            beams = []
+            cooldown = 0
+            lives = 3
+            score = 0
+            speedboat_hits = 0
+            multiplier = 1
+            main_menu = True
             game = False
 
-    # Life check
-    for speedboat in speedboats:
-        if speedboat.rect.y >= 734:
-            speedboat.kill()
-            lives -= 1
+        # Basic cooldown for the projectiles of the player
+        if cooldown > 0:
+            cooldown += 1
+        if cooldown > 50:
+            cooldown = 0
 
-        if not speedboat.alive:
-            speedboats.remove(speedboat)
+        # Collision of attacks
+        for beam in beams:
+            if beam.checkCollision(speedboats):
+                speedboat_hits += 1
+                score += (25 * multiplier)
+                beams.pop(beams.index(beam))
+            for pirate_boss in bosses:
+                if pirate_boss.alive and not pirate_boss.killed:
+                    if beam.y - beam.width < pirate_boss.hitbox[1] + pirate_boss.hitbox[3] and beam.y + beam.width > \
+                            pirate_boss.hitbox[1]:
+                        if beam.x + beam.height > pirate_boss.hitbox[0] and beam.x - beam.height < pirate_boss.hitbox[
+                            0] + \
+                                pirate_boss.hitbox[2]:
+                            pirate_boss.hitpoints -= beam.damage
+                            beams.pop(beams.index(beam))
+                            alive_check = pirate_boss.hit()
+                            if alive_check:
+                                multiplier += 1
+                                bosses.remove(pirate_boss)
 
-    if pirate_boss.end_reached and not pirate_boss.killed:
-        lives = 0
+            if beam.y > 0:
+                beam.y -= beam.speed  # This makes sure the bullet moves forward as long as it is not of the screen
+                beam.rect.center = (beam.x, beam.y)
+            else:
+                beams.pop(beams.index(beam))  # If the bullet goes of the screen it gets removed from the list
 
-    # Basic cooldown for the projectiles of the player
-    if cooldown > 0:
-        cooldown += 1
-    if cooldown > 50:
-        cooldown = 0
+        # --- PLAYER CONTROLS ---
+        keys = pygame.key.get_pressed()
 
-    # Collision of attacks
-    for beam in beams:
-        if beam.checkCollision(speedboats):
-            score += (25 * multiplier)
-            beams.pop(beams.index(beam))
-        if pirate_boss.alive and not pirate_boss.killed:
-            if beam.y - beam.width < pirate_boss.hitbox[1] + pirate_boss.hitbox[3] and beam.y + beam.width > \
-                    pirate_boss.hitbox[1]:
-                if beam.x + beam.height > pirate_boss.hitbox[0] and beam.x - beam.height < pirate_boss.hitbox[0] + \
-                        pirate_boss.hitbox[2]:
-                    pirate_boss.hitpoints -= beam.damage
-                    beams.pop(beams.index(beam))
-                    alive_check = pirate_boss.hit()
-                    if alive_check:
-                        multiplier += 1
+        if keys[pygame.K_LEFT] and whale.x > whale.mov_speed:
+            # Makes sure the whale can move left
+            # and prevents the whale from exiting the screen
+            whale.x = whale.x - whale.mov_speed
 
-        if beam.y > 0:
-            beam.y -= beam.speed  # This makes sure the bullet moves forward as long as it is not of the screen
-            beam.rect.center = (beam.x, beam.y)
-        else:
-            beams.pop(beams.index(beam))  # If the bullet goes of the screen it gets removed from the list
+        if keys[pygame.K_RIGHT] and whale.x < 800 - whale.mov_speed - whale.width:
+            # Makes sure the whale can move right
+            # and prevents the whale from exiting the screen
+            whale.x = whale.x + whale.mov_speed
 
-    # --- PLAYER CONTROLS ---
-    keys = pygame.key.get_pressed()
+        if keys[pygame.K_SPACE] and cooldown == 0:
+            # This block of code takes care of the beam-projectile the player can shoot
+            if len(beams) < 3:
+                beams.append(
+                    Projectile(round(whale.x + (whale.width // 2) - (32 // 2)), round(whale.y - (32 // 2)), 32, 32, 2,
+                               10, beam_sprite))
+                # The beam gets spawned at the whale X/Y Coordinate. To make the beam appear in the middle and at the
+                # nose we add half the sprites width - half the width of the projectile to the for the x coordinate
+                # and we use the y coordinate - half the length of the projectile to make the attack spawn at the top
+            cooldown = 1
 
-    if keys[pygame.K_LEFT] and whale.x > whale.mov_speed:
-        # Makes sure the whale can move left
-        # and prevents the whale from exiting the screen
-        whale.x = whale.x - whale.mov_speed
+        # --- ENEMY SPAWNING ---
 
-    if keys[pygame.K_RIGHT] and whale.x < 800 - whale.mov_speed - whale.width:
-        # Makes sure the whale can move right
-        # and prevents the whale from exiting the screen
-        whale.x = whale.x + whale.mov_speed
+        now = pygame.time.get_ticks()
+        spawn_time = 3000
+        speedboat = Enemy(64, 64, 1)
+        boss = Boss(1, 1, 256, 256, 1, 50)
 
-    if keys[pygame.K_SPACE] and cooldown == 0:
-        # This block of code takes care of the beam-projectile the player can shoot
-        if len(beams) < 3:
-            beams.append(
-                Projectile(round(whale.x + (whale.width // 2) - (32 // 2)), round(whale.y - (32 // 2)), 32, 32, 2,
-                           10, beam_sprite))
-            # The beam gets spawned at the whale X/Y Coordinate. To make the beam appear in the middle and at the
-            # nose we add half the sprites width - half the width of the projectile to the for the x coordinate
-            # and we use the y coordinate - half the length of the projectile to make the attack spawn at the top
-        cooldown = 1
+        # Game loop to increase difficulty
 
-    # --- ENEMY SPAWNING ---
+        if score > 500:
+            spawn_time = 2000
 
-    now = pygame.time.get_ticks()
-    spawn_time = 3000
-    speedboat = Enemy(64, 64, 1)
+        if score > 1000:
+            spawn_time = 1500
 
-    # Game loop to increase difficulty
-    if score > 500:
-        spawn_time = 2000
+        if score > 5000:
+            speedboat = Enemy(64, 64, 2)
+            spawn_time = 2000
 
-    if score > 1000:
-        spawn_time = 1000
+        if score > 10000:
+            speedboat = Enemy(64, 64, 2)
+            spawn_time = 1500
 
-    if score > 5000:
-        speedboat = Enemy(64, 64, 2)
-        spawn_time = 2000
+        if now - start > spawn_time:
+            start = now
+            speedboats.add(speedboat)
 
-    if now - start > spawn_time:
-        start = now
-        speedboats.add(speedboat)
+        if speedboat_hits >= 10:
+            bosses.append(boss)
+            speedboat_hits = 0
 
+        redrawGameWindow()
+        clock.tick(FPS)
 
+    elif main_menu:
+        time_delta = clock.tick(60) / 1000.0
+        for event in pygame.event.get():  # this for-loop makes sure the game exits when clicking x
+            if event.type == pygame.QUIT:
+                running = False
 
+            if event.type == pygame.USEREVENT:
+                if event.user_type == pygame_gui.UI_BUTTON_PRESSED:
+                    if event.ui_element == start_button:
+                        game = True
+                        main_menu = False
+                    if event.ui_element == quit_button:
+                        running = False
 
+            manager.process_events(event)
 
-
-
-    redrawGameWindow()
+        manager.update(time_delta)
+        redrawUI()
 
 pygame.quit()
