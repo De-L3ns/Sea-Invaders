@@ -1,5 +1,6 @@
 # Sea-Invaders
 Space Invaders look-alike with Pygame and Pygame_gui.
+Google drive .exe download: https://drive.google.com/file/d/15w9aX89ZFLcKKXR6lBYI3Bg154mL7-Zl/view?usp=sharing
 
 # Credits
 Sea Invaders is inspired by the documentary Seaspiracy (https://www.imdb.com/title/tt14152756/)
