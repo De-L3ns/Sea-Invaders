@@ -3,11 +3,12 @@
 
 block_cipher = None
 
-
+import os, pygame_gui
+pygame_data_loc = os.path.join(os.path.dirname(pygame_gui.__file__), 'data')
 a = Analysis(['SeaInvaders.py'],
              pathex=['/Users/laurens/Coding/Python_Projects/SeaInvaders/GameFiles'],
              binaries=[],
-             datas=[('pygame_gui/data/default_theme.json', '.')],
+             datas=[('data/*', 'data'), ('Images/*', 'Images'), (pygame_data_loc, "pygame_gui/data")],
              hiddenimports=[],
              hookspath=[],
              runtime_hooks=[],
@@ -31,7 +32,7 @@ exe = EXE(pyz,
           upx=True,
           upx_exclude=[],
           runtime_tmpdir=None,
-          console=False )
+          console=True )
 app = BUNDLE(exe,
              name='SeaInvaders.app',
              icon=None,

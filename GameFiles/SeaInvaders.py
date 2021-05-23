@@ -2,25 +2,31 @@ import pygame
 import pygame_gui
 import pygame_gui.data
 import random
+import sys
+import os
+# Method to enable correct paths for .exe file (PyInstaller)
+if getattr(sys, 'frozen', False):
+    os.chdir(sys._MEIPASS)
 
 # Initialize game window here
 pygame.init()
+pygame.font.init()
 
 # Variables for the game window
 window = pygame.display.set_mode((800, 800))
-manager = pygame_gui.UIManager((800, 800))
+manager = pygame_gui.UIManager((800, 800), 'data/default_theme.json')
 pygame.display.set_caption('Sea Invaders')
 clock = pygame.time.Clock()  # Adds the clock for spawn timers
-score_font = pygame.font.SysFont('Calibri', 36)
-multiplier_font = pygame.font.SysFont('Calibri', 18)
+score_font = pygame.font.SysFont('Arial', 36)
+multiplier_font = pygame.font.SysFont('Arial', 18)
 
 # Sprites, background, UI and music
-background = pygame.image.load('Background.jpg')
-whale_sprite = pygame.image.load('Whale.png')
-speedboat_sprite = pygame.image.load('Speedboat.png')
-beam_sprite = pygame.image.load('Beam.png')
-life_sprite = pygame.image.load('Life.png')
-pirate_boss_sprite_right = pygame.image.load('Pirateboss_right.png')
+background = pygame.image.load(os.path.join('Images/Background.jpg'))
+whale_sprite = pygame.image.load(os.path.join('Images/Whale.png'))
+speedboat_sprite = pygame.image.load('Images/Speedboat.png')
+beam_sprite = pygame.image.load('Images/Beam.png')
+life_sprite = pygame.image.load('Images/Life.png')
+pirate_boss_sprite_right = pygame.image.load('Images/Pirateboss_right.png')
 game_title = pygame_gui.elements.UILabel(relative_rect=pygame.Rect((200, 100), (400, 100)), text='SEA INVADERS',
                                          manager=manager)
 
@@ -187,7 +193,7 @@ def redrawGameWindow():
     whale.draw(window)  # Draws the Whale in the game
     scoreboard = score_font.render(str(score), True, (255, 255, 255))
     multiplier_message = multiplier_font.render(f'multiplier: {multiplier}', True, (255, 255, 255))
-    window.blit(scoreboard, (700, 760))
+    window.blit(scoreboard, (685, 760))
     window.blit(multiplier_message, (85, 766))
 
     x_life = 0
@@ -341,10 +347,16 @@ while running:
         if score > 5000:
             speedboat = Enemy(64, 64, 2)
             spawn_time = 2000
+            boss = Boss(1, 1, 256, 256, 2, 50)
 
         if score > 10000:
             speedboat = Enemy(64, 64, 2)
+            boss = Boss(1, 1, 256, 256, 1, 50)
             spawn_time = 1500
+
+        if score > 15000:
+            boss = Boss(1, 1, 256, 256, 2, 50)
+            spawn_time = 1000
 
         if now - start > spawn_time:
             start = now
